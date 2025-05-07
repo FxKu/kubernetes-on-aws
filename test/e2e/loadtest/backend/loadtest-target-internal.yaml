@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadtest-e2e-internal
+  namespace: loadtest-e2e
+  labels:
+    application: loadtest-e2e
+    component: internal
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      deployment: loadtest-e2e-internal
+  template:
+    metadata:
+      labels:
+        deployment: loadtest-e2e-internal
+        application: loadtest-e2e
+        component: internal
+    spec:
+      containers:
+      - name: skipper
+        image: container-registry.zalando.net/teapot/skipper:v0.21.192
+        imagePullPolicy: IfNotPresent
+        args:
+        - skipper
+        - -address=:9090
+        - -wait-first-route-load
+        - -wait-for-healthcheck-interval=25s
+        - -metrics-flavour=prometheus
+        - -close-idle-conns-period=20s
+        - -idle-conns-num=1000
+        - -serve-host-metrics
+        - -serve-method-metric=false
+        - -serve-status-code-metric=true
+        - -serve-host-counter
+        - -access-log-disabled
+        - -inline-routes
+        - |
+          s: * -> enableAccessLog(4,5) -> inlineContent("<h1>main</h1>") -> <shunt>;
+          healthz: Path("/healthz") -> enableAccessLog(4,5) -> status(200)-> <shunt>;
+        ports:
+        - containerPort: 9090
+          name: ingress-port
+          protocol: TCP
+        lifecycle:
+          preStop:
+            sleep:
+              seconds: 1
+        readinessProbe:
+          failureThreshold: 1
+          httpGet:
+            path: /healthz
+            port: 9090
+            scheme: HTTP
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1500Mi
+          requests:
+            cpu: "1"
+            memory: 1500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadtest-e2e-internal
+  namespace: loadtest-e2e
+spec:
+  selector:
+    deployment: loadtest-e2e-internal
+  ports:
+  - port: 80
+    targetPort: 9090
+  type: ClusterIP

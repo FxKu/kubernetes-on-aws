@@ -9,7 +9,7 @@ data:
   routes.eskip: |
     h: PathSubtree("/healthz") -> status(200) -> inlineContent("OK") -> <shunt>;
     e: Host("external.zalan.do") -> "https://%TARGET%.%ZONE%";
-    i: Host("internal.zalan.do") -> "http://loadtest-e2e.ingress.cluster.local";
+    i: Host("internal.zalan.do") -> "http://loadtest-e2e-internal";
   get_external.txt: |
     GET http://127.0.0.1:9090
     Host: external.zalan.do
