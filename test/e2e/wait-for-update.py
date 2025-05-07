@@ -24,7 +24,7 @@ def update_complete(kind, check_fn):
 
 
 def daemonset_updated(spec, status):
-    desired = status.get("desiredNumberScheduled", 0)
+    desired = status.get("updatedNumberScheduled", 0)
     ready = status.get("numberReady", 0)
     if desired == ready:
         return None
